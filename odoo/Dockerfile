@@ -1,8 +1,7 @@
 #------------------------#
 #     Odoo Community     #
 #------------------------#
-ARG ODOO_TAG
-FROM odoo:${ODOO_TAG}
+FROM odoo:17.0
 
 # Switch to root user
 USER root

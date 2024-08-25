@@ -82,6 +82,8 @@ expand_env_vars() {
     done <<< "$1"
 }
 
+mkdir -p ${THIRD_PARTY_ADDONS}
+
 # Read the configuration file and process each line
 while IFS= read -r line; do
     mkdir -p ${ENTERPRISE_ADDONS}

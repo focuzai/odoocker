@@ -1,5 +1,4 @@
-ARG POSTGRES_TAG
-FROM postgres:${POSTGRES_TAG}
+FROM postgres:16.4
 
 #------------------------#
 #    APT Dependencies    #
