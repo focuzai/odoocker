@@ -12,3 +12,9 @@ __pycache__
 
 # Ignores upgrade files
 upgrade/
+
+# Ignore custom-addons and extra-addons
+odoo/custom-addons/*
+!odoo/custom-addons/.gitkeep
+odoo/extra-addons/*
+!odoo/extra-addons/.gitkeep
