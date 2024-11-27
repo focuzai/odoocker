@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# set -x
 set -e
 
 # Function to construct the clone command
@@ -81,6 +82,8 @@ expand_env_vars() {
         echo
     done <<< "$1"
 }
+
+mkdir -p ${THIRD_PARTY_ADDONS}
 
 # Read the configuration file and process each line
 while IFS= read -r line; do
