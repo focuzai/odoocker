@@ -1,8 +1,5 @@
 #!/bin/bash
 
-source .env
-
-set -x
 set -e
 
 # Define the path to the example configuration file
