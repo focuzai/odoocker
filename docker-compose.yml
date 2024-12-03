@@ -113,7 +113,6 @@ services:
     environment:
       - TRUST_DOWNSTREAM_PROXY
       - CORS_ALLOWED_DOMAIN
-      - ROOT_PATH
     networks:
       - internal
     profiles: [$NGINX_PROXY_PROFILES]
@@ -137,12 +136,14 @@ services:
     profiles: [$ACME_COMPANION_PROFILES]
 
   redis:
-    build:
-      context: ./
-      dockerfile: ./redis/Dockerfile
-      args:
-        - KEYDB_TAG
-        - REDIS_CONFIG
+    image: eqalpha/keydb:${KEYDB_TAG}
+    command: keydb-server /etc/keydb/keydb.conf --server-threads 4 --requirepass ${REDIS_PASSWORD} --appendonly yes
+    # build:
+    #   context: ./
+    #   dockerfile: ./redis/Dockerfile
+    #   args:
+    #     - KEYDB_TAG
+    #     - REDIS_CONFIG
     tty: true
     platform: linux/amd64
     ports:
