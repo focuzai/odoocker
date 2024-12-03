@@ -80,7 +80,13 @@ services:
     profiles: [$POSTGRES_PROFILES]
 
   nginx:
-    image: nginx:${NGINX_TAG}
+    # image: nginx:${NGINX_TAG}
+    build:
+      context: ./
+      dockerfile: ./nginx/Dockerfile
+      args:
+        - NGINX_TAG
+        - ROOT_PATH
     depends_on:
       - odoo
     tty: true
@@ -94,6 +100,21 @@ services:
       - LETSENCRYPT_HOST
       - LETSENCRYPT_EMAIL
       - CORS_ALLOWED_DOMAIN
+      - ROOT_PATH
+      - COMMUNITY_ADDONS
+      - ENTERPRISE_ADDONS
+      - THIRD_PARTY_ADDONS
+      - EXTRA_ADDONS
+      - CUSTOM_ADDONS
+      - OP_ADDONS
+      - OP_GANEMO_CONTACT
+      - OP_GANEMO_EDOCUMENT
+      - OP_GANEMO_FINANCIAL
+      - OP_GANEMO_INVOICING
+      - OP_GANEMO_L10N_PE
+      - OP_GANEMO_LOGISTICS
+      - OP_GANEMO_PLE
+      - OP_GANEMO_ADDONS
     networks:
       - internal
     profiles: [$NGINX_PROFILES]
@@ -113,6 +134,7 @@ services:
     environment:
       - TRUST_DOWNSTREAM_PROXY
       - CORS_ALLOWED_DOMAIN
+      - ROOT_PATH
     networks:
       - internal
     profiles: [$NGINX_PROXY_PROFILES]
@@ -143,7 +165,7 @@ services:
         - KEYDB_TAG
         - REDIS_CONFIG
     tty: true
-    platform: linux/amd64
+    # platform: linux/amd64
     ports:
       - ${KEYDB_PORT}:${KEYDB_PORT}
     volumes:
