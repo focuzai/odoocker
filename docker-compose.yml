@@ -137,7 +137,7 @@ services:
 
   redis:
     image: eqalpha/keydb:${KEYDB_TAG}
-    command: keydb-server /etc/keydb/keydb.conf --server-threads 4 --requirepass ${REDIS_PASSWORD} --appendonly yes
+    # command: keydb-server /etc/keydb/keydb.conf --server-threads 4 --requirepass ${REDIS_PASSWORD} --appendonly yes
     # build:
     #   context: ./
     #   dockerfile: ./redis/Dockerfile
