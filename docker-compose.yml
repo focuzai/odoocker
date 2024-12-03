@@ -136,14 +136,14 @@ services:
     profiles: [$ACME_COMPANION_PROFILES]
 
   redis:
-    image: eqalpha/keydb:${KEYDB_TAG}
+    # image: eqalpha/keydb:${KEYDB_TAG}
     # command: keydb-server /etc/keydb/keydb.conf --server-threads 4 --requirepass ${REDIS_PASSWORD} --appendonly yes
-    # build:
-    #   context: ./
-    #   dockerfile: ./redis/Dockerfile
-    #   args:
-    #     - KEYDB_TAG
-    #     - REDIS_CONFIG
+    build:
+      context: ./
+      dockerfile: ./redis/Dockerfile
+      args:
+        - KEYDB_TAG
+        - REDIS_CONFIG
     tty: true
     platform: linux/amd64
     ports:
