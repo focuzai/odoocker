@@ -144,7 +144,7 @@ services:
         - KEYDB_TAG
         - REDIS_CONFIG
     tty: true
-    # platform: linux/amd64
+    platform: linux/amd64
     ports:
       - ${KEYDB_PORT}:${KEYDB_PORT}
     volumes:
