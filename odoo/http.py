@@ -1413,6 +1413,8 @@ class Request:
                 dbname = all_dbs[0]  # monodb
         
         server_name = self.httprequest.environ['SERVER_NAME']
+        _logger.info("🔴🔴 environ=%r", self.httprequest.environ)
+        _logger.info("🔴🔴 server_name=%r", server_name)
         if server_name == '0.0.0.0' and session.db: # Docker
             _logger.info("🚀 Docker: Assigning session.db=%r database.", session.db)
             dbname = session.db
