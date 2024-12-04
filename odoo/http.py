@@ -1413,21 +1413,16 @@ class Request:
                 dbname = all_dbs[0]  # monodb
         
         server_name = self.httprequest.environ['SERVER_NAME']
-        _logger.info("🔴🔴 environ=%r", self.httprequest.environ)
-        _logger.info("🔴🔴 server_name=%r", server_name)
         if server_name in ['0.0.0.0', '127.0.0.1'] and session.db: # Docker
             _logger.info("🚀 Docker: Assigning session.db=%r database.", session.db)
             dbname = session.db
-
-        _logger.info("🔴🔴 session.db=%r", session.db)
-        _logger.info("🔴🔴 dbname=%r", dbname)
+        
         if session.db != dbname:
             if session.db and '':
                 _logger.warning("Logged into database %r, but dbfilter rejects it; logging session out.", session.db)
                 session.logout(keep_db=False)
             session.db = dbname
-        _logger.info("🆗🆗 session.db=%r", session.db)
-        _logger.info("🆗🆗 dbname=%r", dbname)
+        
         session.is_dirty = False
         return session, dbname
 
