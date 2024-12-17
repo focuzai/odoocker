@@ -6,6 +6,10 @@ services:
       - 127.0.0.1:8070:8070
       - 127.0.0.1:8071:8071
       - 127.0.0.1:8072:8072
+    expose:
+      - 80/tcp
+    extra_hosts:
+      - ${DOMAIN1}:127.0.0.1
 
   postgres:
     restart: unless-stopped
