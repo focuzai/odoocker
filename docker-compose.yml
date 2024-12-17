@@ -20,7 +20,6 @@ services:
     tty: true
     volumes:
       - odoo-data:${DATA_DIR}
-      - ./odoo/http.py:${ROOT_PATH}/http.py:rw
       - ./odoo/extra-addons:${EXTRA_ADDONS}
       - ./odoo/custom-addons:${CUSTOM_ADDONS}
       - ./odoo/entrypoint.sh:/entrypoint.sh
