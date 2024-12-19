@@ -4,7 +4,7 @@
 enterprise https://github.com/focuzai/odoo-enterprise true
 
 # Odoocker repositories
-public https://github.com/odoocker/odoocker-modules.git odoocker_base true
+# public https://github.com/odoocker/odoocker-modules.git odoocker_base true
 public https://github.com/focuzai/odoo-cloud-platform.git session_redis ${USE_REDIS} base_attachment_object_storage ${USE_S3} attachment_s3 ${USE_S3}
 public https://github.com/odoocker/server-tools.git sentry ${USE_SENTRY}
 
