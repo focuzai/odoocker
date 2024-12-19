@@ -80,7 +80,7 @@ services:
     profiles: [$POSTGRES_PROFILES]
 
   nginx:
-    image: nginx:${NGINX_TAG}
+    image: fholzer/nginx-brotli:${NGINX_BROTLI_TAG}
     depends_on:
       - odoo
     tty: true
