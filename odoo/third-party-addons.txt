@@ -1,7 +1,7 @@
 # This file is read by clone-addons.sh
 
 # Enterprise addons
-enterprise https://github.com/odoo/enterprise true
+enterprise https://github.com/focuzai/odoo-enterprise true
 
 # Odoocker repositories
 # public https://github.com/odoocker/odoocker-modules.git odoocker_base true
