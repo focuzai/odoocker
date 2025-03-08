@@ -175,11 +175,13 @@ Using the Search Panel will allow you to look at every single reference of what 
 ```
 alias odoo='cd odoocker'
 
-alias hard-deploy='docker-compose down && git pull && docker-compose pull && docker-compose build --no-cache && docker-compose up -d && docker-compose logs -f odoo'
+alias hard-deploy='docker compose down && git pull && docker compose pull && docker compose build --no-cache && docker compose up -d && docker compose logs -f odoo'
 
-alias deploy='docker-compose down && git pull && docker-compose up -d --build && docker-compose logs -f --tail 2000 odoo'
+alias deploy='docker compose down && git pull && docker compose up -d --build && docker compose logs -f --tail 2000 odoo'
 
-alias logs='docker-compose logs -f --tail 2000 odoo'
+alias dodoo='docker compose build odoo && docker compose up -d --no-deps --build odoo && docker compose logs -f --tail 2000 odoo'
+
+alias logs='docker compose logs -f --tail 2000 odoo'
 ```
 
 ## 3. NEVER run `docker-compose down -v` in Production
