@@ -86,8 +86,9 @@ RUN python3 -m pip install --break-system-packages -r /tmp/requirements.txt && \
 # Create third-party-addons directory and clone them
 COPY --chown=odoo:odoo --chmod=755 ./odoo/clone-addons.sh /
 COPY --chown=odoo:odoo --chmod=644 ./odoo/third-party-addons.txt /
-RUN sed -i 's/\r$//' /third-party-addons.txt
-RUN sed -i 's/\r$//' /clone-addons.sh && /clone-addons.sh
+# RUN sed -i 's/\r$//' /third-party-addons.txt
+# RUN sed -i 's/\r$//' /clone-addons.sh
+RUN /clone-addons.sh
 
 #-----------------------#
 #       Odoo Conf       #
@@ -98,7 +99,8 @@ COPY --chown=odoo:odoo ./odoo/odoo.conf /
 COPY --chown=odoo:odoo --chmod=755 ./odoo/odoorc.sh /
 
 # Generate odoo.conf
-RUN sed -i 's/\r$//' /odoorc.sh && /odoorc.sh && chown odoo:odoo ${ODOO_RC}
+# RUN sed -i 's/\r$//' /odoorc.sh
+RUN /odoorc.sh && chown odoo:odoo ${ODOO_RC}
 
 # Switch back to odoo user
 USER odoo
