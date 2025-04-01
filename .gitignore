@@ -20,3 +20,6 @@ odoo/custom-addons/*
 !odoo/custom-addons/.gitkeep
 odoo/extra-addons/*
 !odoo/extra-addons/.gitkeep
+
+# Los
+*.log

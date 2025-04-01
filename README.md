@@ -179,9 +179,14 @@ alias hard-deploy='docker compose down && git pull && docker compose pull && doc
 
 alias deploy='docker compose down && git pull && docker compose up -d --build && docker compose logs -f --tail 2000 odoo'
 
-alias dodoo='docker compose build odoo && docker compose up -d --no-deps --build odoo && docker compose logs -f --tail 2000 odoo'
+alias odoo-hard='docker compose build odoo --no-cache && docker compose up -d --no-deps --build odoo && docker compose logs -f --tail 2000 odoo'
+
+alias odoo-deploy='docker compose build odoo && docker compose up -d --no-deps --build odoo && docker compose logs -f --tail 2000 odoo'
+
+alias odoo-update='chmod +x odoo/update-modules.sh && odoo/update-modules.sh'
 
 alias logs='docker compose logs -f --tail 2000 odoo'
+
 ```
 
 ## 3. NEVER run `docker-compose down -v` in Production
@@ -190,19 +195,49 @@ alias logs='docker compose logs -f --tail 2000 odoo'
 Have in mind that dropping volumes will destroy DB data, Odoo Conf & Filestore, *Let's Encrypt certificates, and more!* If you execute this command several times in `prod` in a short period of time, you may reach the `Let's Encrypt certificates limit`` and Odoocker won't be able to generate new ones after **several hours**.
 
 ## 4. Odoo Shell
-1. Log into the odoo container
+1. Log into the odoo container with `docker-compose`
 ```
 docker-compose exec odoo bash
 ```
+2. (Optional) Log into the odoo container with `docker`
+```
+docker exec -it <container> bash
+```
 2. Start Odoo shell running:
 ```
-odoo shell --http-port=8071
+odoo shell -d <db> --http-port=8071
+```
+3. Exit Odoo shell:
+```
+exit()
 ```
 
-## 5. Odoo Scaffold
+## 5. Change Odoo User Password
+3. Commands to change username, password and save changes:
+```
+self.env["res.users"].browse(2).login = "sadmin"
+self.env["res.users"].browse(2).password = "sadmin"
+self.env.cr.commit()
+```
+
+## 6. Odoo Update Module
+1. Log into the odoo container with `docker-compose`
+```
+docker-compose exec -it odoo bash
+```
+2. (Optional) Log into the odoo container with `docker`
+```
+docker exec -it <container> bash
+```
+3. Command to update modules
+```
+odoo -d <db> -u <modules|all> --stop-after-init
+```
+
+## 6. Odoo Scaffold
 1. Log into the odoo container
 ```
-docker-compose exec -u root odoo
+docker-compose exec -it -u root odoo bash
 ```
 2. Navigate to custom addons folder inside the container
 ```
@@ -214,7 +249,7 @@ odoo scaffold <addon_name>
 ```
 - The new addon will be available in the `odoo/custom_addons` folder in this project.
 
-## 6. Colorize your branches
+## 7. Colorize your branches
 Add the following to `~/.bashrc`
 ```
 # Color git branches

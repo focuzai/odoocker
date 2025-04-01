@@ -21,7 +21,7 @@ services:
     volumes:
       - odoo-data:${DATA_DIR}
       - ./odoo/extra-addons:${EXTRA_ADDONS}
-      - ./odoo/custom-addons:${CUSTOM_ADDONS}
+      - ./odoo/custom-addons:${CUSTOM_ADDONS}:rw
       - ./odoo/entrypoint.sh:/entrypoint.sh
     environment:
       - HOST=${DB_HOST}
