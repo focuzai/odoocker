@@ -1,4 +1,4 @@
-ARG KEYDB_TAG
+ARG KEYDB_TAG=latest
 FROM eqalpha/keydb:${KEYDB_TAG}
 
 # Switch to root user
