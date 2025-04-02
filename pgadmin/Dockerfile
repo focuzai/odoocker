@@ -1,7 +1,7 @@
 #------------------------#
 #     PGAdmin Server     #
 #------------------------#
-ARG PGADMIN_TAG
+ARG PGADMIN_TAG=latest
 FROM dpage/pgadmin4:${PGADMIN_TAG}
 
 # Receive ARGs from docker-compose.yml & convert them into ENVs
