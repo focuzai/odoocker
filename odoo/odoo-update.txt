@@ -10,7 +10,7 @@ NOTE: this command is handy to quickly test updates during some development iter
 
 
 Usage:
-  odoo-update [-h | --help] [-d | --database] <module>
+  odoo-update [--help] [--container] [--database] <module>
 
 Options:
   -h, --help           Show this screen and exit.

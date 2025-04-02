@@ -27,10 +27,10 @@ msg() {
 }
 # Mostrar mensaje de odoo-update help
 odoo_help() {
-    if [ -f odoo/update-modules.txt ]; then
-        echo "$(cat odoo/update-modules.txt)"
+    if [ -f odoo/odoo-update.txt ]; then
+        echo "$(cat odoo/odoo-update.txt)"
     else
-        echo "Uso: odoo-update [-d database] <module>"
+        echo -e "Usage:\n  odoo-update [--help] [--container] [--database] <module>"
     fi
 }
 # Función para mostrar uso
@@ -74,7 +74,7 @@ get_db() {
     local db_name=""
     # Si no se proporcionó DB_NAME, obtenerlo del contenedor
     if [ -z "$container_name" ]; then
-        db_name=$(docker-compose exec odoo bash -c "awk -F '=' '/^db_name/ {print \$2}' $ODOO_RC | tr -d ' '")
+        db_name=$(docker compose exec odoo bash -c "awk -F '=' '/^db_name/ {print \$2}' $ODOO_RC | tr -d ' '")
     else
         db_name=$(docker exec $container_name bash -c "awk -F '=' '/^db_name/ {print \$2}' $ODOO_RC | tr -d ' '")
     fi
@@ -87,9 +87,9 @@ get_db() {
     echo $db_name
 }
 
-# Si no se proporcionó CONTAINER_NAME, usar docker-compose
+# Si no se proporcionó CONTAINER_NAME, usar docker compose
 if [ -z "$CONTAINER_NAME" ]; then
-    echo -e $(msg "blue" "No se proporcionó un contenedor, usando servicio Odoo con docker-compose.")
+    # echo -e $(msg "blue" "No se proporcionó un contenedor, usando servicio Odoo con docker compose.")
     # Si no se proporcionó DB_NAME, obtenerlo del contenedor
     if [ -z "$DB_NAME" ]; then
         DB_NAME=$(get_db)
@@ -100,11 +100,17 @@ if [ -z "$CONTAINER_NAME" ]; then
         exit 1
     fi
     # Reiniciar contenedor de Odoo
-    docker-compose restart --no-deps odoo || { log "docker-compose restart --no-deps odoo - Error al reiniciar contenedor"; exit 1; }
+    if docker compose restart --no-deps odoo; then
+        echo -e $(msg "green" "🔄 Reinicio del contenedor Odoo exitoso.")
+    else
+        ERROR_MSG=$(docker compose restart --no-deps odoo 2>&1)
+        echo -e $(msg "red" "🔴 Error al reiniciar el contenedor Odoo: $ERROR_MSG")
+        exit 1
+    fi
 
     # Ejecutar la actualización de módulos en el contenedor Docker
     # echo -e $(msg "green" "🚀 odoo -d $DB_NAME -u $MODULES")
-    if docker-compose exec -it odoo odoo -d $DB_NAME -u $MODULES --http-port=$DEBUG_PORT --stop-after-init; then
+    if docker compose exec odoo odoo -d $DB_NAME -u $MODULES --http-port=$DEBUG_PORT --stop-after-init; then
         echo -e $(msg "green" "👍 Actualización de módulos completada.")
     else
         echo -e $(msg "red" "🔴 Error al actualizar los módulos.")
@@ -122,7 +128,14 @@ else
     fi
     
     # Reiniciar contenedor de Odoo
-    docker restart $CONTAINER_NAME || { log "docker restart $CONTAINER_NAME - Error al reiniciar contenedor"; exit 1; }
+    # docker restart $CONTAINER_NAME
+    if docker restart --no-deps $CONTAINER_NAME; then
+        echo -e $(msg "green" "🔄 Reinicio del contenedor Odoo exitoso.")
+    else
+        ERROR_MSG=$(docker restart --no-deps $CONTAINER_NAME 2>&1)
+        echo -e $(msg "red" "🔴 Error al reiniciar el contenedor Odoo: $ERROR_MSG")
+        exit 1
+    fi
 
     # Ejecutar la actualización de módulos en el contenedor Docker
     # echo -e $(msg "green" "🚀 odoo -d $DB_NAME -u $MODULES")
