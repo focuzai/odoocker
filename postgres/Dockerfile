@@ -1,4 +1,4 @@
-ARG POSTGRES_TAG
+ARG POSTGRES_TAG=latest
 FROM postgres:${POSTGRES_TAG}
 
 #------------------------#
