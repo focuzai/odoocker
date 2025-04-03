@@ -128,11 +128,10 @@ else
     fi
     
     # Reiniciar contenedor de Odoo
-    # docker restart $CONTAINER_NAME
-    if docker restart --no-deps $CONTAINER_NAME; then
+    if docker restart $CONTAINER_NAME; then
         echo -e $(msg "green" "🔄 Reinicio del contenedor Odoo exitoso.")
     else
-        ERROR_MSG=$(docker restart --no-deps $CONTAINER_NAME 2>&1)
+        ERROR_MSG=$(docker restart $CONTAINER_NAME 2>&1)
         echo -e $(msg "red" "🔴 Error al reiniciar el contenedor Odoo: $ERROR_MSG")
         exit 1
     fi
