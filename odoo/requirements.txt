@@ -10,3 +10,4 @@ nextcloud-api-wrapper
 boto3
 paramiko
 html5lib==1.1
+openpyxl
