@@ -1,17 +1,25 @@
 # Ignores the main configuration file.
 /.env
+/.env-*
 
 # Ignores the pgadmin private key
 pgadmin/private_key
 
 # Ignores the docker compose local or production environment.
 docker-compose.override.yml
+docker-compose-*
 
 # Ignores any __pycache__ folder.
 __pycache__
+
+# Ignores upgrade files
+upgrade/
 
 # Ignore custom-addons and extra-addons
 odoo/custom-addons/*
 !odoo/custom-addons/.gitkeep
 odoo/extra-addons/*
 !odoo/extra-addons/.gitkeep
+
+# Los
+*.log
