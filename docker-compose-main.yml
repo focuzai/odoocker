@@ -1,0 +1,51 @@
+services:
+
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:${NGINX_PROXY_TAG}
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    tty: true
+    volumes:
+      - ./nginx-proxy/nginx.conf:${NGINX_CONF}
+      - ./nginx-proxy/cors.conf:${NGINX_PROXY_CORS_CONF}
+      - html:${NGINX_HTML}
+      - vhost:${NGINX_VHOST}
+      - certs:${NGINX_CERTS}:ro
+      - ${DOCKER_SOCK}:${TEMP_DOCKER_SOCK}:ro
+    environment:
+      - TRUST_DOWNSTREAM_PROXY
+      - CORS_ALLOWED_DOMAIN
+    networks:
+      - internal
+    # profiles: [$NGINX_PROXY_PROFILES]
+  letsencrypt:
+    image: nginxproxy/acme-companion:${ACME_COMPANION_TAG}
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+    volumes_from:
+      - nginx-proxy:rw
+    volumes:
+      - certs:${NGINX_CERTS}:rw
+      - acme:${NGINX_ACME}
+      - ${DOCKER_SOCK}:${DOCKER_SOCK}:ro
+    environment:
+      - ACME_CA_URI
+      - CERTS_UPDATE_INTERVAL
+      - DEFAULT_EMAIL
+    networks:
+      - internal
+    # profiles: [$ACME_COMPANION_PROFILES]
+
+volumes:
+  html:
+  vhost:
+  certs:
+  acme:
+
+networks:
+  internal:
+    driver: bridge
+    name: internal

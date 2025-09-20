@@ -1,0 +1,197 @@
+services:
+  odoo:
+    build:
+      context: ./
+      dockerfile: ./odoo/Dockerfile
+      args:
+        - ODOO_TAG
+        - ODOO_RC
+        - ROOT_PATH
+        - ENTERPRISE_USER
+        - ENTERPRISE_ACCESS_TOKEN
+        - ENTERPRISE_ADDONS
+        - GITHUB_USER
+        - GITHUB_ACCESS_TOKEN
+        - THIRD_PARTY_ADDONS
+        - LOG_PATH
+        - USE_REDIS
+        - USE_S3
+        - USE_SENTRY
+    tty: true
+    volumes:
+      - odoo-data:${DATA_DIR}
+      - ./odoo/extra-addons:${EXTRA_ADDONS}
+      - ./odoo/custom-addons:${CUSTOM_ADDONS}
+      - ./odoo/entrypoint.sh:/entrypoint.sh
+    environment:
+      - HOST=${DB_HOST}
+      - PORT=${DB_PORT}
+      - USER=${DB_USER}
+      - PASSWORD=${DB_PASSWORD}
+      - ODOO_TAG
+      - ODOO_RC
+      - USE_REDIS
+      - USE_S3
+      - USE_SENTRY
+      - THIRD_PARTY_ADDONS
+      - ODOO_SESSION_REDIS
+      - ODOO_SESSION_REDIS_HOST
+      - ODOO_SESSION_REDIS_PORT
+      - ODOO_SESSION_REDIS_PASSWORD
+      - ODOO_SESSION_REDIS_URL
+      - ODOO_SESSION_REDIS_PREFIX
+      - ODOO_SESSION_REDIS_SENTINEL_MASTER_NAME
+      - ODOO_SESSION_REDIS_SENTINEL_HOST
+      - ODOO_SESSION_REDIS_SENTINEL_PORT
+      - ODOO_SESSION_REDIS_EXPIRATION
+      - ODOO_SESSION_REDIS_EXPIRATION_ANONYMOUS
+      - AWS_HOST
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_BUCKETNAME
+    # expose:
+    #   - 80/tcp
+    # extra_hosts:
+    #   - ${DOMAIN1}:127.0.0.1
+    #   - ${DOMAIN2}:127.0.0.1
+    #   - ${DOMAIN3}:127.0.0.1
+    networks:
+      - internal
+    profiles: [$ODOO_PROFILES]
+
+  postgres:
+    build: 
+      context: ./
+      dockerfile: ./postgres/Dockerfile
+      args:
+        - POSTGRES_TAG
+    tty: true
+    volumes:
+      - pg-data:${PGDATA}
+      - ./postgres/entrypoint.sh:/docker-entrypoint-initdb.d/entrypoint.sh
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - PGDATA
+      - DB_USER
+      - DB_TEMPLATE
+      - UNACCENT_TEMPLATE
+      - PGADMING_DB_NAME
+      - PGADMING_DB_USER
+      - PGADMIN_DB_PASSWORD
+    networks:
+      - internal
+    profiles: [$POSTGRES_PROFILES]
+
+  nginx:
+    image: fholzer/nginx-brotli:${NGINX_BROTLI_TAG}
+    depends_on:
+      - odoo
+    tty: true
+    expose:
+      - 80/tcp
+    volumes:
+      - ./nginx/nginx.conf:${NGINX_CONF}
+      - ./nginx/default.conf:${NGINX_DEFAULT_CONF}
+    environment:
+      - VIRTUAL_HOST
+      - LETSENCRYPT_HOST
+      - LETSENCRYPT_EMAIL
+      - CORS_ALLOWED_DOMAIN
+    networks:
+      - internal
+    profiles: [$NGINX_PROFILES]
+
+  redis:
+    build:
+      context: ./
+      dockerfile: ./redis/Dockerfile
+      args:
+        - KEYDB_TAG
+        - REDIS_CONFIG
+    platform: linux/amd64
+    ports:
+      - ${KEYDB_PORT}:${KEYDB_PORT}
+    volumes:
+      - redis-data:${KEYDB_DATA}
+    networks:
+      - internal
+    profiles: [$KEYDB_PROFILES]
+
+  s3:
+    image: minio/minio:${MINIO_TAG}
+    environment:
+      - MINIO_ROOT_USER
+      - MINIO_ROOT_PASSWORD
+      - MINIO_BROWSER_REDIRECT_URL
+      - VIRTUAL_HOST=${MINIO_VIRTUAL_HOST}
+      - VIRTUAL_PORT=${MINIO_CONSOLE_PORT}
+    command: server ${MINIO_DATA} --console-address ":${MINIO_CONSOLE_PORT}"
+    volumes:
+      - s3-data:${MINIO_DATA}
+    ports:
+      - ${MINIO_API_PORT}:${MINIO_API_PORT}
+      - ${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}
+    networks:
+      - internal
+    profiles: [$MINIO_PROFILES]
+
+  pgadmin:
+    build:
+      context: ./
+      dockerfile: ./pgadmin/Dockerfile
+      args:
+        - PGADMIN_TAG
+    # depends_on:
+    #   - nginx-proxy
+    expose:
+      - 80
+    volumes:
+      - pgadmin-data:${PGADMIN_DATA}
+    environment:
+      - PGADMIN_DEFAULT_EMAIL
+      - PGADMIN_DEFAULT_PASSWORD
+      - VIRTUAL_HOST=${PGADMIN_VIRTUAL_HOST}
+      - LETSENCRYPT_HOST=${PGADMIN_LETSENCRYPT_HOST}
+      - LETSENCRYPT_EMAIL=${PGADMIN_LETSENCRYPT_EMAIL}
+      - PGADMIN_CONFIG_APP_NAME
+      - PGADMIN_CONFIG_CONFIG_DATABASE_CONNECTION_POOL_SIZE
+      - PGADMIN_CONFIG_SERVER_MODE
+      - PGADMIN_CONFIG_DEFAULT_SERVER
+      - PGADMIN_CONFIG_DEFAULT_SERVER_PORT
+      - PGADMIN_CONFIG_PASSWORD_LENGTH_MIN
+      - PGADMIN_CONFIG_MAX_SESSION_IDLE_TIME
+      - PGADMIN_CONFIG_CONFIG_DATABASE_URI
+      - PGADMIN_CONFIG_ALLOW_SAVE_PASSWORD
+      - PGADMIN_CONFIG_MAX_QUERY_HIST_STORED
+      - PGADMIN_CONFIG_MAIL_SERVER
+      - PGADMIN_CONFIG_MAIL_PORT
+      - PGADMIN_CONFIG_MAIL_USE_SSL
+      - PGADMIN_CONFIG_MAIL_USE_TLS
+      - PGADMIN_CONFIG_MAIL_USERNAME
+      - PGADMIN_CONFIG_MAIL_PASSWORD
+      - PGADMIN_CONFIG_MAIL_DEBUG
+      - PGADMIN_CONFIG_SECURITY_EMAIL_SENDER
+      - PGADMIN_CONFIG_ALLOW_SAVE_TUNNEL_PASSWORD
+      - PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS
+    networks:
+      - internal
+    profiles: [$PGADMIN_PROFILES]
+
+networks:
+  internal:
+    external: true
+    name: internal
+
+volumes:
+  odoo-data:
+  pg-data:
+  redis-data:
+  s3-data:
+  pgadmin-data:
+  # html:
+  # vhost:
+  # certs:
+  # acme:
