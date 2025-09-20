@@ -6,8 +6,9 @@
 pgadmin/private_key
 
 # Ignores the docker compose local or production environment.
+docker-compose.yml
 docker-compose.override.yml
-docker-compose-*
+# docker-compose-*
 
 # Ignores any __pycache__ folder.
 __pycache__
@@ -23,3 +24,7 @@ odoo/extra-addons/*
 
 # Los
 *.log
+
+# Claude Code cache/options directory
+.claude/*
+!.claude/agents
