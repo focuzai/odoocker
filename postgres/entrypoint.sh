@@ -16,24 +16,27 @@ psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $POSTGRES_DB -c "CREATE DATABAS
 psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $DB_TEMPLATE -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
 psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $DB_TEMPLATE -c "ALTER FUNCTION unaccent(text) IMMUTABLE;"
 psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $DB_TEMPLATE -c "CREATE EXTENSION IF NOT EXISTS vector;"
+psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $DB_TEMPLATE -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 
-echo "Template database '$DB_TEMPLATE' created with extensions: unaccent, vector."
+# Mark as template so non-superusers can use it with CREATE DATABASE ... TEMPLATE
+psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $POSTGRES_DB -c "ALTER DATABASE $DB_TEMPLATE IS_TEMPLATE true;"
+
+echo "Template database '$DB_TEMPLATE' created with extensions: unaccent, vector, pg_trgm."
 
 # ================================
 # 2. Create users (multi-tenant support)
 # ================================
-# Function to create a user with CREATEDB + SUPERUSER and grant template access
+# Function to create a user with CREATEDB (no SUPERUSER) and grant template access
 create_user() {
     local user=$1
     local password=$2
 
     echo "Creating user: $user ..."
 
-    psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $POSTGRES_DB -c "CREATE USER $user WITH PASSWORD '$password' CREATEDB SUPERUSER;"
-    psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $POSTGRES_DB -c "GRANT ALL PRIVILEGES ON DATABASE $DB_TEMPLATE TO $user;"
-    psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $DB_TEMPLATE -c "ALTER DATABASE $DB_TEMPLATE OWNER TO $user;"
+    psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $POSTGRES_DB -c "CREATE USER $user WITH PASSWORD '$password' CREATEDB;"
+    psql -p $POSTGRES_PORT -U $POSTGRES_MAIN_USER -d $POSTGRES_DB -c "GRANT CONNECT ON DATABASE $DB_TEMPLATE TO $user;"
 
-    echo "User '$user' created with CREATEDB + SUPERUSER privileges."
+    echo "User '$user' created with CREATEDB privileges (no SUPERUSER)."
 }
 
 # Check for numbered user variables (DB_USER_1, DB_USER_2, ...)

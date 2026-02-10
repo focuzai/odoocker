@@ -50,8 +50,12 @@ services:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_BUCKETNAME
+      - POSTGRES_MAIN_USER
+      - POSTGRES_MAIN_PASSWORD
+      - DB_TEMPLATE
     networks:
-      - internal
+      - default
+      - db
     profiles: [$ODOO_PROFILES]
 
   # postgres:
@@ -96,6 +100,7 @@ services:
       - LETSENCRYPT_EMAIL
       - CORS_ALLOWED_DOMAIN
     networks:
+      - default
       - internal
     profiles: [$NGINX_PROFILES]
 
@@ -176,6 +181,11 @@ services:
     profiles: [$PGADMIN_PROFILES]
 
 networks:
+  default:
+    # Project-isolated network: odoo ↔ nginx DNS resolution stays within this project
+  db:
+    external: true
+    name: db
   internal:
     external: true
     name: internal

@@ -30,6 +30,39 @@ if [[ $USE_SENTRY == "true" ]]; then
     LOAD+=",sentry"
 fi
 
+# ================================
+# Auto-provision PostgreSQL user (if POSTGRES_MAIN_USER is set)
+# Creates DB_USER without SUPERUSER if it doesn't exist yet.
+# ================================
+if [ -n "$POSTGRES_MAIN_USER" ] && [ -n "$POSTGRES_MAIN_PASSWORD" ]; then
+    echo "Checking if PostgreSQL user '${USER}' exists..."
+
+    # Wait for PostgreSQL to be available (max 30s)
+    RETRIES=30
+    until PGPASSWORD="${POSTGRES_MAIN_PASSWORD}" psql -h "${HOST}" -p "${PORT}" -U "${POSTGRES_MAIN_USER}" -d postgres -c '\q' 2>/dev/null; do
+        RETRIES=$((RETRIES - 1))
+        if [ $RETRIES -le 0 ]; then
+            echo "WARNING: Could not connect to PostgreSQL for user provisioning. Skipping."
+            break
+        fi
+        echo "Waiting for PostgreSQL... ($RETRIES attempts left)"
+        sleep 1
+    done
+
+    if [ $RETRIES -gt 0 ]; then
+        USER_EXISTS=$(PGPASSWORD="${POSTGRES_MAIN_PASSWORD}" psql -h "${HOST}" -p "${PORT}" -U "${POSTGRES_MAIN_USER}" -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='${USER}'")
+
+        if [ "$USER_EXISTS" != "1" ]; then
+            echo "Creating PostgreSQL user '${USER}' with CREATEDB (no SUPERUSER)..."
+            PGPASSWORD="${POSTGRES_MAIN_PASSWORD}" psql -h "${HOST}" -p "${PORT}" -U "${POSTGRES_MAIN_USER}" -d postgres -c "CREATE USER ${USER} WITH PASSWORD '${PASSWORD}' CREATEDB;"
+            PGPASSWORD="${POSTGRES_MAIN_PASSWORD}" psql -h "${HOST}" -p "${PORT}" -U "${POSTGRES_MAIN_USER}" -d postgres -c "GRANT CONNECT ON DATABASE ${DB_TEMPLATE} TO ${USER};"
+            echo "User '${USER}' created successfully."
+        else
+            echo "User '${USER}' already exists. Skipping creation."
+        fi
+    fi
+fi
+
 case "$1" in
     -- | odoo)
         shift
