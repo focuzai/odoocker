@@ -50,15 +50,34 @@ if [ -n "$POSTGRES_MAIN_USER" ] && [ -n "$POSTGRES_MAIN_PASSWORD" ]; then
     done
 
     if [ $RETRIES -gt 0 ]; then
-        USER_EXISTS=$(PGPASSWORD="${POSTGRES_MAIN_PASSWORD}" psql -h "${HOST}" -p "${PORT}" -U "${POSTGRES_MAIN_USER}" -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='${USER}'")
+        # Helper: run psql as the main (admin) user
+        PG_ADMIN="PGPASSWORD=${POSTGRES_MAIN_PASSWORD} psql -h ${HOST} -p ${PORT} -U ${POSTGRES_MAIN_USER} -d postgres"
+
+        USER_EXISTS=$(eval $PG_ADMIN -tAc "SELECT 1 FROM pg_roles WHERE rolname='${USER}'")
 
         if [ "$USER_EXISTS" != "1" ]; then
             echo "Creating PostgreSQL user '${USER}' with CREATEDB (no SUPERUSER)..."
-            PGPASSWORD="${POSTGRES_MAIN_PASSWORD}" psql -h "${HOST}" -p "${PORT}" -U "${POSTGRES_MAIN_USER}" -d postgres -c "CREATE USER ${USER} WITH PASSWORD '${PASSWORD}' CREATEDB;"
-            PGPASSWORD="${POSTGRES_MAIN_PASSWORD}" psql -h "${HOST}" -p "${PORT}" -U "${POSTGRES_MAIN_USER}" -d postgres -c "GRANT CONNECT ON DATABASE ${DB_TEMPLATE} TO ${USER};"
+            eval $PG_ADMIN -c "CREATE USER ${USER} WITH PASSWORD '${PASSWORD}' CREATEDB;"
+            eval $PG_ADMIN -c "GRANT CONNECT ON DATABASE ${DB_TEMPLATE} TO ${USER};"
             echo "User '${USER}' created successfully."
         else
             echo "User '${USER}' already exists. Skipping creation."
+        fi
+
+        # Pre-create database with CONNECT isolation (if DB_NAME is set)
+        if [ -n "${DB_NAME}" ]; then
+            DB_EXISTS=$(eval $PG_ADMIN -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'")
+
+            if [ "$DB_EXISTS" != "1" ]; then
+                echo "Pre-creating database '${DB_NAME}' from template '${DB_TEMPLATE}'..."
+                eval $PG_ADMIN -c "CREATE DATABASE \"${DB_NAME}\" TEMPLATE ${DB_TEMPLATE} OWNER ${USER};"
+                echo "Database '${DB_NAME}' created."
+            fi
+
+            # Ensure CONNECT isolation: revoke PUBLIC, grant only to owner
+            echo "Enforcing CONNECT isolation on '${DB_NAME}'..."
+            eval $PG_ADMIN -c "REVOKE CONNECT ON DATABASE \"${DB_NAME}\" FROM PUBLIC;"
+            eval $PG_ADMIN -c "GRANT CONNECT ON DATABASE \"${DB_NAME}\" TO ${USER};"
         fi
     fi
 fi
