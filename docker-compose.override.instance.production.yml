@@ -13,10 +13,10 @@ services:
       - ${DOMAIN1}:127.0.0.1
       - ${DOMAIN2}:127.0.0.1
 
-  postgres:
-    restart: unless-stopped
-    ports:
-      - 127.0.0.1:5432:5432
+  # postgres:
+  #   restart: unless-stopped
+  #   ports:
+  #     - 127.0.0.1:5432:5432
   
   nginx:
     restart: unless-stopped
