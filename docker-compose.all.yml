@@ -55,6 +55,7 @@ services:
     profiles: [$ODOO_PROFILES]
 
   postgres:
+    container_name: ${DB_HOST}
     build: 
       context: ./
       dockerfile: ./postgres/Dockerfile

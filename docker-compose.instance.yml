@@ -50,41 +50,36 @@ services:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_BUCKETNAME
-    # expose:
-    #   - 80/tcp
-    # extra_hosts:
-    #   - ${DOMAIN1}:127.0.0.1
-    #   - ${DOMAIN2}:127.0.0.1
-    #   - ${DOMAIN3}:127.0.0.1
     networks:
       - internal
     profiles: [$ODOO_PROFILES]
 
-  postgres:
-    build: 
-      context: ./
-      dockerfile: ./postgres/Dockerfile
-      args:
-        - POSTGRES_TAG
-    tty: true
-    volumes:
-      - pg-data:${PGDATA}
-      - ./postgres/entrypoint.sh:/docker-entrypoint-initdb.d/entrypoint.sh
-    environment:
-      - POSTGRES_DB
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - PGDATA
-      - DB_USER
-      - DB_TEMPLATE
-      - UNACCENT_TEMPLATE
-      - PGADMING_DB_NAME
-      - PGADMING_DB_USER
-      - PGADMIN_DB_PASSWORD
-    networks:
-      - internal
-    profiles: [$POSTGRES_PROFILES]
-
+  # postgres:
+  #   container_name: ${DB_HOST}
+  #   build: 
+  #     context: ./
+  #     dockerfile: ./postgres/Dockerfile
+  #     args:
+  #       - POSTGRES_TAG
+  #   tty: true
+  #   volumes:
+  #     - pg-data:${PGDATA}
+  #     - ./postgres/entrypoint.sh:/docker-entrypoint-initdb.d/entrypoint.sh
+  #   environment:
+  #     - POSTGRES_DB
+  #     - POSTGRES_USER
+  #     - POSTGRES_PASSWORD
+  #     - PGDATA
+  #     - DB_USER
+  #     - DB_TEMPLATE
+  #     - UNACCENT_TEMPLATE
+  #     - PGADMING_DB_NAME
+  #     - PGADMING_DB_USER
+  #     - PGADMIN_DB_PASSWORD
+  #   networks:
+  #     - internal
+  #   profiles: [$POSTGRES_PROFILES]
+  
   nginx:
     image: fholzer/nginx-brotli:${NGINX_BROTLI_TAG}
     depends_on:
@@ -187,7 +182,7 @@ networks:
 
 volumes:
   odoo-data:
-  pg-data:
+  # pg-data:
   redis-data:
   s3-data:
   pgadmin-data:

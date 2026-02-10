@@ -17,46 +17,61 @@ In essence, Odoocker isn't just another tool, it's a philosophy. So, whether you
 
 ## Contents
 
-- [Quick Setup Guide](#quick-setup-guide)
+- [Odoocker: The Ultimate Odoo Docker Framework](#odoocker-the-ultimate-odoo-docker-framework)
+    - [Why Odoocker Stands Out:](#why-odoocker-stands-out)
+  - [Contents](#contents)
+- [Quick Setup Guide:](#quick-setup-guide)
 - [The `.env` File](#the-env-file)
-  - [Environment-based actions](#environment-based-actions)
+  - [Environment-based actions:](#environment-based-actions)
     - [1. Fresh or Restore](#1-fresh-or-restore)
-    - [2. Local](#2-local)
-    - [3. Debug](#3-debug)
-    - [4. Testing](#4-testing)
-    - [5. Full](#5-full)
-    - [6. Staging](#6-staging)
-    - [7. Production](#7-production)
+    - [2. Local:](#2-local)
+    - [3. Debug:](#3-debug)
+    - [4. Testing:](#4-testing)
+    - [5. Full:](#5-full)
+    - [6. Staging:](#6-staging)
+    - [7. Production:](#7-production)
 - [Pro(d) Tips](#prod-tips)
-  - [1. Search through all Addons at once](#1-search-through-all-addons-at-once)
-  - [2. Define the following aliases](#2-define-the-following-aliases)
-  - [3. NEVER run **docker-compose down -v** in Production](#3-never-run-docker-compose-down--v-in-production)
+  - [1. Search through all Addons at once:](#1-search-through-all-addons-at-once)
+  - [2. Define the following aliases:](#2-define-the-following-aliases)
+  - [3. NEVER run `docker-compose down -v` in Production](#3-never-run-docker-compose-down--v-in-production)
   - [4. Odoo Shell](#4-odoo-shell)
   - [5. Odoo Scaffold](#5-odoo-scaffold)
   - [6. Colorize your branches](#6-colorize-your-branches)
 - [DB Connection](#db-connection)
-  - [PgAdmin](#pgadmin-container) 
+  - [PgAdmin](#pgadmin)
 - [Deployment Process](#deployment-process)
+- [Footnote](#footnote)
 
 # Quick Setup Guide:
 
 1. **Clone and Configure**:
 ```
-git clone git@github.com:odoocker/odoocker.git
-cd odoocker
-cp .env.example .env && cp docker-compose.override.local.yml docker-compose.override.yml
+git clone -b 19.0 git@github.com:focuz-ai/odoocker.git o19_docker
+cd o19_docker
+cp .env.example .env && cp docker-compose.all.yml docker-compose.yml
+cp docker-compose.override.local.yml docker-compose.override.yml
 ```
-2. **Hosts & Domains**: To ensure everything runs smoothly, remember to add the necessary domains to your hosts file.
+
+**Multiple Instances** (Opcional)
+
+If you want to deploy multiple instances of odoo, then run the following code.
+```
+cp docker-compose.instance.yml docker-compose.yml
+cp docker-compose.override.instance.local.yml docker-compose.override.yml
+```
+1. **Hosts & Domains**: To ensure everything runs smoothly, remember to add the necessary domains to your hosts file.
 
 For *Unix*:
 ```
-echo '127.0.0.1 erp.odoocker.test' | sudo tee -a /etc/hosts
+echo '127.0.0.1 odoocker.test' | sudo tee -a /etc/hosts
 echo '127.0.0.1 pgadmin.odoocker.test' | sudo tee -a /etc/hosts
+echo '127.0.0.1 s3.odoocker.test' | sudo tee -a /etc/hosts
 ```
 For *Windows*, manually add these lines to C:\Windows\System32\drivers\etc\hosts:
 ```
-127.0.0.1 erp.odoocker.test
+127.0.0.1 odoocker.test
 127.0.0.1 pgadmin.odoocker.test
+127.0.0.1 s3.odoocker.test
 ```
 
 # The `.env` File
@@ -74,7 +89,10 @@ UPDATE=my_custom_addon
 LOAD=base,web
 WORKERS=2
 DEV_MODE=reload,qweb
-DOMAIN=erp.odoocker.test
+DOMAIN1=odoocker.test
+DOMAIN2=www.odoocker.test
+DOMAIN3=erp.odoocker.test
+DOMAIN=${DOMAIN1},${DOMAIN2},${DOMAIN3}
 
 # Enterprise (GitHub User with access to Odoo Enterprise [https://github.com/odoo/enterprise] Repo)
 # If not present, Odoo Community will be brought up.
@@ -98,13 +116,20 @@ LOAD_LANGUAGE=es_MX
 <br>
 In all environments, `odoo.conf` follows the `.env` file variables. Some environments may have command-line parameter to overwrite certain configurations.
 
+**Multiple Instances** (Opcional)
+
+If you have run the `docker-compose.main.yml` file on the VPS, do not run it again.
+```
+docker-compose -f docker-compose.main.yml up -d --build
+```
+
 **To bring up all the environments run**:
 ```
 docker-compose up -d --build && docker-compose logs odoo
 ```
 Restart adding `down`:
 ```
-docker-compose down && docker-compose up -d --build && docker-compose logs odoo
+docker-compose down && docker-compose up -d --build && docker-compose logs -f odoo
 ```
 
 ### 1. Fresh or Restore

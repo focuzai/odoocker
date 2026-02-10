@@ -1,7 +1,7 @@
 #------------------------#
 #     Odoo Community     #
 #------------------------#
-FROM odoo:18.0
+FROM odoo:19.0
 
 # Switch to root user
 USER root

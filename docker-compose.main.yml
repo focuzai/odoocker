@@ -1,6 +1,6 @@
 services:
-
   nginx-proxy:
+    container_name: nginx-proxy
     image: nginxproxy/nginx-proxy:${NGINX_PROXY_TAG}
     restart: unless-stopped
     ports:
@@ -20,7 +20,9 @@ services:
     networks:
       - internal
     # profiles: [$NGINX_PROXY_PROFILES]
+  
   letsencrypt:
+    container_name: letsencrypt
     image: nginxproxy/acme-companion:${ACME_COMPANION_TAG}
     restart: unless-stopped
     depends_on:
@@ -39,11 +41,41 @@ services:
       - internal
     # profiles: [$ACME_COMPANION_PROFILES]
 
+  postgres:
+    container_name: postgres
+    restart: unless-stopped
+    build: 
+      context: ./
+      dockerfile: ./postgres/Dockerfile
+      args:
+        - POSTGRES_TAG
+    tty: true
+    volumes:
+      - pg-data:${PGDATA}
+      # - ./postgres/entrypoint.sh:/docker-entrypoint-initdb.d/entrypoint.sh
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA
+      - DB_USER
+      - DB_TEMPLATE
+      - UNACCENT_TEMPLATE
+      - PGADMING_DB_NAME
+      - PGADMING_DB_USER
+      - PGADMIN_DB_PASSWORD
+    networks:
+      - internal
+    ports:
+      - 5432:5432
+    # profiles: [$POSTGRES_PROFILES]
+
 volumes:
   html:
   vhost:
   certs:
   acme:
+  pg-data:
 
 networks:
   internal:
