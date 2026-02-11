@@ -20,7 +20,12 @@ In essence, Odoocker isn't just another tool, it's a philosophy. So, whether you
 - [Odoocker: The Ultimate Odoo Docker Framework](#odoocker-the-ultimate-odoo-docker-framework)
     - [Why Odoocker Stands Out:](#why-odoocker-stands-out)
   - [Contents](#contents)
-- [Quick Setup Guide:](#quick-setup-guide)
+- [Deployment Modes](#deployment-modes)
+  - [Quick Start: Standalone (All-in-One)](#quick-start-standalone-all-in-one)
+  - [Quick Start: Main Infrastructure](#quick-start-main-infrastructure)
+  - [Quick Start: Multi-Tenant Instance](#quick-start-multi-tenant-instance)
+  - [Quick Start: Enterprise Instance](#quick-start-enterprise-instance)
+- [Configuration Templates](#configuration-templates)
 - [The `.env` File](#the-env-file)
   - [Environment-based actions:](#environment-based-actions)
     - [1. Fresh or Restore](#1-fresh-or-restore)
@@ -40,55 +45,145 @@ In essence, Odoocker isn't just another tool, it's a philosophy. So, whether you
 - [DB Connection](#db-connection)
   - [PgAdmin](#pgadmin)
 - [Deployment Process](#deployment-process)
-- [Multi-Instance Client Deployment](#multi-instance-client-deployment)
-  - [Architecture](#architecture)
-  - [1. Deploy Shared Infrastructure](#1-deploy-shared-infrastructure)
-  - [2. Configure Multi-Tenant Users](#2-configure-multi-tenant-users)
-  - [3. Deploy a Client Instance](#3-deploy-a-client-instance)
-  - [4. Port Allocation](#4-port-allocation)
+- [Multi-Instance Architecture](#multi-instance-architecture)
+  - [Multi-Tenant Architecture](#multi-tenant-architecture)
+  - [Enterprise Architecture](#enterprise-architecture)
+  - [Port Allocation](#port-allocation)
+  - [Auto-Provisioning](#auto-provisioning)
 - [Footnote](#footnote)
 
-# Quick Setup Guide:
+# Deployment Modes
 
-1. **Clone and Configure**:
-```
+Odoocker supports 3 deployment modes, each with its own `.env` template and compose file:
+
+| Mode | Compose File | `.env` Template | Use Case |
+|------|-------------|-----------------|----------|
+| **Standalone** | `docker-compose.all.yml` | `.env.example` | Single instance with all services (dev/demo) |
+| **Main + Multi-Tenant** | `docker-compose.main.yml` + `docker-compose.instance.yml` | `.env.main.example` + `.env.multi-tenant.example` | Shared postgres, multiple Odoo instances |
+| **Enterprise** | `docker-compose.enterprise.yml` | `.env.enterprise.example` | Standalone instance with its own postgres |
+
+## Quick Start: Standalone (All-in-One)
+
+For development or single-client deployments with all services in one stack:
+
+```bash
 git clone -b 19.0 git@github.com:focuz-ai/odoocker.git o19_docker
 cd o19_docker
-cp .env.example .env && cp docker-compose.all.yml docker-compose.yml
-cp docker-compose.override.local.yml docker-compose.override.yml
-```
-
-
-**Multiple Instances** (Opcional)
-Deploy Main
-```
 cp .env.example .env
-docker-compose -f docker-compose.main.yml up -d --build
+cp docker-compose.all.yml docker-compose.yml
+cp docker-compose.override.local.yml docker-compose.override.yml
+
+# Edit .env: set CLIENT, GITHUB_USER, GITHUB_ACCESS_TOKEN
+echo '127.0.0.1 odoocker.test' | sudo tee -a /etc/hosts
+
+docker compose up -d --build && docker compose logs -f odoo
 ```
 
-If you want to deploy multiple instances of odoo, then run the following code.
+Access: http://localhost:8069/web/login
 
+## Quick Start: Main Infrastructure
+
+Deploy shared postgres + nginx-proxy + SSL for multi-tenant environments:
+
+```bash
+cd o19_docker
+cp .env.main.example .env
+
+# Edit .env:
+#   - DB_USER_1=cliente_1, DB_PASSWORD_1=odoo123456
+#   - DB_USER_2=cliente_2, DB_PASSWORD_2=odoo123456
+#   - Add more DB_USER_N as needed
+
+docker compose -f docker-compose.main.yml -p o19_main up -d --build
 ```
-git clone -b 19.0 git@github.com:focuz-ai/odoocker.git o19_client1
-cd o19_client1
+
+This creates: PostgreSQL 17 + pgvector, nginx-proxy (ports 80/443), letsencrypt, `unaccent_template` database with extensions (unaccent, vector, pg_trgm).
+
+Verify:
+```bash
+docker exec postgres psql -U postgres -c "\du"
+docker exec postgres psql -U postgres -d unaccent_template -c "\dx"
+```
+
+## Quick Start: Multi-Tenant Instance
+
+Deploy a client instance that connects to the shared postgres from Main:
+
+```bash
+git clone -b 19.0 git@github.com:focuz-ai/odoocker.git o19_cliente_1
+cd o19_cliente_1
+cp .env.multi-tenant.example .env
 cp docker-compose.instance.yml docker-compose.yml
 cp docker-compose.override.instance.local.yml docker-compose.override.yml
-docker-compose up -d --build
-```
-1. **Hosts & Domains**: To ensure everything runs smoothly, remember to add the necessary domains to your hosts file.
 
-For *Unix*:
+# Edit .env:
+#   CLIENT=cliente_1
+#   DB_USER=cliente_1, DB_PASSWORD=odoo123456
+#   GITHUB_USER=..., GITHUB_ACCESS_TOKEN=...
+
+# Edit docker-compose.override.yml: set unique ports (8069:80, 8070:8070, etc.)
+
+echo '127.0.0.1 cliente1.test' | sudo tee -a /etc/hosts
+docker compose up -d --build && docker compose logs -f odoo
 ```
-echo '127.0.0.1 odoocker.test' | sudo tee -a /etc/hosts
-echo '127.0.0.1 pgadmin.odoocker.test' | sudo tee -a /etc/hosts
-echo '127.0.0.1 s3.odoocker.test' | sudo tee -a /etc/hosts
+
+Access: http://localhost:8069/web/login
+
+## Quick Start: Enterprise Instance
+
+Deploy a standalone instance with its **own postgres** (independent of shared infra):
+
+```bash
+git clone -b 19.0 git@github.com:focuz-ai/odoocker.git o19_cliente_4
+cd o19_cliente_4
+cp .env.enterprise.example .env
+cp docker-compose.enterprise.yml docker-compose.yml
+cp docker-compose.override.enterprise.local.yml docker-compose.override.yml
+
+# Edit .env:
+#   CLIENT=cliente_4
+#   DB_USER=odoo, DB_PASSWORD=odoo123456
+#   GITHUB_USER=..., GITHUB_ACCESS_TOKEN=...
+
+# Edit docker-compose.override.yml: set unique ports
+#   Odoo: 8369:80, 8370:8070, 8371:8071, 8372:8072
+#   Postgres: 5437:5432
+
+echo '127.0.0.1 cliente4.test' | sudo tee -a /etc/hosts
+docker compose up -d --build && docker compose logs -f odoo
 ```
-For *Windows*, manually add these lines to C:\Windows\System32\drivers\etc\hosts:
+
+Access: http://localhost:8369/web/login
+
+Verify standalone postgres:
+```bash
+docker compose exec postgres psql -U postgres -c "\du"    # odoo user (CREATEDB, no SUPERUSER)
+docker compose exec postgres psql -U postgres -c "\l"     # Only this client's databases
+docker compose exec postgres psql -U postgres -d cliente4.test -c "\dx"  # unaccent, vector, pg_trgm
 ```
-127.0.0.1 odoocker.test
-127.0.0.1 pgadmin.odoocker.test
-127.0.0.1 s3.odoocker.test
-```
+
+# Configuration Templates
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `.env.example` | ~434 | Full monolithic config (all services, all modes) |
+| `.env.main.example` | ~99 | Main infra only: postgres + proxy + acme |
+| `.env.multi-tenant.example` | ~352 | Tenant instance: odoo + nginx, shared postgres |
+| `.env.enterprise.example` | ~442 | Standalone: odoo + nginx + own postgres + pgadmin |
+
+| Compose File | Services |
+|-------------|----------|
+| `docker-compose.all.yml` | All services in one stack |
+| `docker-compose.main.yml` | postgres, nginx-proxy, letsencrypt |
+| `docker-compose.instance.yml` | odoo, nginx (connects to external postgres via `db` network) |
+| `docker-compose.enterprise.yml` | odoo, nginx, postgres (project-isolated `default` network + external `internal`) |
+
+| Override | Purpose |
+|----------|---------|
+| `docker-compose.override.local.yml` | Dev: direct ports, `restart: 'no'` |
+| `docker-compose.override.production.yml` | Prod: localhost-bound ports, `restart: unless-stopped` |
+| `docker-compose.override.enterprise.local.yml` | Enterprise dev: ports 8069:80, pg 5437:5432 |
+| `docker-compose.override.enterprise.production.yml` | Enterprise prod: localhost-bound, `restart: unless-stopped` |
 
 # The `.env` File
 The environment variables located in [`.env`](https://github.com/odoocker/odoocker/blob/main/.env.example) provide dynamic configurations to Odoo and the project in general.
@@ -131,13 +226,6 @@ LOAD_LANGUAGE=es_MX
 [`odoo/entrypoint.sh`](https://github.com/odoocker/odoocker/blob/main/odoo/entrypoint.sh) file is the gateway for our Odoo container. Depending on the `APP_ENV` and the rest of the environment variables, it determines how to start the Odoo service (like local, testing, production, etc.) with different configurations.
 <br>
 In all environments, `odoo.conf` follows the `.env` file variables. Some environments may have command-line parameter to overwrite certain configurations.
-
-**Multiple Instances** (Opcional)
-
-If you have run the `docker-compose.main.yml` file on the VPS, do not run it again.
-```
-docker-compose -f docker-compose.main.yml up -d --build
-```
 
 **To bring up all the environments run**:
 ```
@@ -323,11 +411,13 @@ git pull origin main
 6. Set [`Staging`](#6-staging) environment
 7. Set [`Production`](#7-production) environment
 
-# Multi-Instance Client Deployment
+# Multi-Instance Architecture
 
-This section explains how to deploy multiple isolated Odoo client instances sharing a single PostgreSQL server with pgvector support.
+Odoocker supports two multi-instance strategies: **Multi-Tenant** (shared postgres) and **Enterprise** (own postgres).
 
-## Architecture
+## Multi-Tenant Architecture
+
+Multiple Odoo instances share a single PostgreSQL server. Each client gets its own database user with `CREATEDB` (no SUPERUSER), CONNECT isolation, and auto-provisioned databases from `unaccent_template`.
 
 ```
 docker-compose.main.yml (shared infrastructure)
@@ -335,156 +425,60 @@ docker-compose.main.yml (shared infrastructure)
 ├── nginx-proxy (ports 80/443)
 └── letsencrypt (auto SSL)
 
-o19_cliente_1/ (instance)            o19_cliente_2/ (instance)
+o19_cliente_1/ (multi-tenant)        o19_cliente_2/ (multi-tenant)
 ├── odoo (port 8069)                 ├── odoo (port 8169)
 ├── nginx                            ├── nginx
 └── connects to shared postgres      └── connects to shared postgres
+    via db + internal networks           via db + internal networks
     with user: cliente_1                 with user: cliente_2
 ```
 
-Each client instance:
-- Has its own PostgreSQL user with `CREATEDB` + `SUPERUSER` privileges
-- Connects to the shared PostgreSQL via the `internal` Docker network
-- Gets its own Odoo container, nginx, and data volume
-- Is completely isolated at the database level (each user owns only its databases)
+User provisioning in `docker-compose.main.yml` via `DB_USER_N`/`DB_PASSWORD_N` pairs in `.env`.
+Odoo entrypoint auto-creates the user if it doesn't exist and pre-creates the database with CONNECT isolation.
 
-## 1. Deploy Shared Infrastructure
+## Enterprise Architecture
 
-First, configure the shared `.env` with your multi-tenant users and deploy `docker-compose.main.yml`:
+Each instance runs its own PostgreSQL, completely isolated from other instances. Ideal for clients that need full database control or cannot share infrastructure.
 
-```bash
-cd o19_docker
-cp .env.example .env
-# Edit .env: set DB_USER_1, DB_PASSWORD_1, DB_USER_2, DB_PASSWORD_2, etc.
+```
+o19_cliente_4/ (enterprise - standalone)
+├── postgres (own, port 5437)    <- project-isolated network
+├── odoo (port 8369)
+├── nginx
+└── pgadmin (optional)
+
+Networks:
+  default  -> odoo <-> postgres <-> nginx (project-isolated)
+  internal -> nginx <-> nginx-proxy (shared, for production SSL)
 ```
 
-Add as many users as needed in `.env`:
-```bash
-# Multi-tenant users
-DB_USER_1=cliente_1
-DB_PASSWORD_1=odoo123456
-DB_USER_2=cliente_2
-DB_PASSWORD_2=odoo123456
-# DB_USER_3=cliente_3
-# DB_PASSWORD_3=odoo123456
-```
+The enterprise compose uses project-scoped `default` network (no cross-project DNS leakage) and connects nginx to the external `internal` network for nginx-proxy discovery in production.
 
-Deploy:
-```bash
-docker-compose -f docker-compose.main.yml -p o19_main up -d --build
-```
+## Port Allocation
 
-This creates:
-- PostgreSQL with pgvector extension and `unaccent_template` database (with `unaccent` + `vector` extensions)
-- One PostgreSQL user per `DB_USER_N`/`DB_PASSWORD_N` pair
-- nginx-proxy for reverse proxying all client instances
-- letsencrypt for automatic SSL
+Each client instance needs unique host ports. Convention:
 
-Verify:
-```bash
-# Check pgvector is installed
-docker exec postgres psql -U postgres -d unaccent_template \
-  -c "SELECT extname, extversion FROM pg_extension WHERE extname IN ('vector', 'unaccent');"
+| Client | HTTP | Debug | XMLRPC | Longpolling | Postgres |
+|--------|------|-------|--------|-------------|----------|
+| cliente_1 | 8069 | 8070 | 8071 | 8072 | shared (5436) |
+| cliente_2 | 8169 | 8170 | 8171 | 8172 | shared (5436) |
+| cliente_3 | 8269 | 8270 | 8271 | 8272 | shared (5436) |
+| cliente_4 (enterprise) | 8369 | 8370 | 8371 | 8372 | 5437 (own) |
+| cliente_N | 8069+(N-1)*100 | ... | ... | ... | 5437+ (if enterprise) |
 
-# Check users were created
-docker exec postgres psql -U postgres -c "\du"
-```
+For production, nginx-proxy routes by domain name; host port mapping is only for development.
 
-## 2. Configure Multi-Tenant Users
+## Auto-Provisioning
 
-The `postgres/entrypoint.sh` script automatically creates users from environment variables:
+The `odoo/entrypoint.sh` automatically handles user and database provisioning when `POSTGRES_MAIN_USER` and `POSTGRES_MAIN_PASSWORD` are set:
 
-| Variable | Description |
-|----------|-------------|
-| `DB_USER_1` / `DB_PASSWORD_1` | First client user |
-| `DB_USER_2` / `DB_PASSWORD_2` | Second client user |
-| `DB_USER_N` / `DB_PASSWORD_N` | N-th client user (up to 20) |
-| `DB_USER` / `DB_PASSWORD` | Fallback single-user mode (used if no `DB_USER_N` vars exist) |
+1. Waits for PostgreSQL to be available (max 30s)
+2. Creates `DB_USER` with `CREATEDB` (no SUPERUSER) if it doesn't exist
+3. Grants `CONNECT` on `DB_TEMPLATE` to the user
+4. Pre-creates `DB_NAME` from `DB_TEMPLATE` if it doesn't exist
+5. Enforces CONNECT isolation: revokes PUBLIC access, grants only to owner
 
-Each user is created with `CREATEDB SUPERUSER` and gets access to the `unaccent_template` database.
-
-## 3. Deploy a Client Instance
-
-For each client, clone the repo and configure as an instance:
-
-```bash
-# Clone the repository
-git clone -b 19.0 git@github.com:focuz-ai/odoocker.git /path/to/o19_cliente_1
-cd /path/to/o19_cliente_1
-
-# Use instance compose files (no local postgres)
-cp docker-compose.instance.yml docker-compose.yml
-cp docker-compose.override.instance.local.yml docker-compose.override.yml
-
-# Create .env from template
-cp .env.example .env
-```
-
-Edit the `.env` with client-specific values:
-```bash
-# Identity
-CLIENT=cliente_1
-PROJECT_NAME=o19_cliente_1
-
-# Domain
-DOMAIN0=cliente1.test
-DOMAIN1=www.cliente1.test
-DOMAIN=${DOMAIN0},${DOMAIN1}
-
-# Database (use the user created in shared postgres)
-DB_NAME=${DOMAIN0}
-DB_USER=cliente_1
-DB_PASSWORD=odoo123456
-DB_HOST=postgres
-DB_PORT=5432
-DBFILTER=^%h$
-
-# Only start odoo and nginx (postgres is shared)
-SERVICES=odoo,nginx
-
-# General
-APP_ENV=local
-WORKERS=0
-```
-
-Edit `docker-compose.override.yml` to set unique host ports:
-```yaml
-services:
-  odoo:
-    ports:
-      - 8069:80      # HTTP
-      - 8070:8070     # Debug
-      - 8071:8071     # XMLRPC
-      - 8072:8072     # Longpolling
-```
-
-Add the domain to `/etc/hosts`:
-```bash
-echo '127.0.0.1 cliente1.test' | sudo tee -a /etc/hosts
-```
-
-Deploy:
-```bash
-docker-compose up -d --build
-```
-
-Verify:
-```bash
-curl -sI http://localhost:8069    # Should return HTTP 303
-```
-
-## 4. Port Allocation
-
-Each client instance needs unique host ports. Use this convention:
-
-| Client | HTTP | Debug | XMLRPC | Longpolling |
-|--------|------|-------|--------|-------------|
-| cliente_1 | 8069 | 8070 | 8071 | 8072 |
-| cliente_2 | 8169 | 8170 | 8171 | 8172 |
-| cliente_3 | 8269 | 8270 | 8271 | 8272 |
-| cliente_N | 8069+(N-1)*100 | 8070+(N-1)*100 | 8071+(N-1)*100 | 8072+(N-1)*100 |
-
-For production, the nginx-proxy handles routing by domain name, so host port mapping is only needed for direct access during development.
+This works for both multi-tenant (connecting to shared postgres) and enterprise (connecting to local postgres) modes.
 
 # Footnote
 This project is based on the [Official Odoo Docker](https://hub.docker.com/_/odoo/) image. We've strived to ensure a seamless integration with the original Docker setup while making necessary customizations to suit our requirements. We encourage contributors and users to frequently refer to the official documentation for foundational concepts and updates. Thank you for your continued support and trust in our project.
