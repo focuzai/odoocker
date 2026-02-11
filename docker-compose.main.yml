@@ -79,6 +79,7 @@ services:
       - PGADMIN_DB_PASSWORD
     networks:
       - internal
+      - db
     ports:
       - 5436:5432
     # profiles: [$POSTGRES_PROFILES]
@@ -94,3 +95,6 @@ networks:
   internal:
     driver: bridge
     name: internal
+  db:
+    driver: bridge
+    name: db

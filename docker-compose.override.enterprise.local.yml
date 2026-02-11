@@ -1,0 +1,30 @@
+services:
+  odoo:
+    restart: 'no'
+    ports:
+      - 8069:80
+      - 8070:8070
+      - 8071:8071
+      - 8072:8072
+    expose:
+      - 80/tcp
+    extra_hosts:
+      - ${DOMAIN0}:127.0.0.1
+      - ${DOMAIN1}:127.0.0.1
+
+  postgres:
+    restart: 'no'
+    ports:
+      - 5437:5432
+
+  nginx:
+    restart: 'no'
+
+  redis:
+    restart: 'no'
+
+  s3:
+    restart: 'no'
+
+  pgadmin:
+    restart: 'no'
